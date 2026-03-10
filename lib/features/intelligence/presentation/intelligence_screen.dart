@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kinsen_ops/core/theme/app_theme.dart';
@@ -5,6 +6,8 @@ import 'package:kinsen_ops/features/intelligence/domain/models/intelligence.dart
 import 'package:kinsen_ops/features/intelligence/presentation/intelligence_controller.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:csv/csv.dart';
 
 class IntelligenceScreen extends ConsumerWidget {
   const IntelligenceScreen({super.key});
@@ -20,7 +23,7 @@ class IntelligenceScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(context),
+            _buildHeader(context, ref),
             const SizedBox(height: 32),
             Expanded(
               child: Row(
@@ -43,7 +46,7 @@ class IntelligenceScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -65,7 +68,7 @@ class IntelligenceScreen extends ConsumerWidget {
           ],
         ),
         ElevatedButton.icon(
-          onPressed: () => _showImportDialog(context),
+          onPressed: () => _pickAndParseFile(context, ref),
           icon: const Icon(LucideIcons.uploadCloud),
           label: const Text('Import Fleet/Shifts'),
           style: ElevatedButton.styleFrom(
@@ -75,6 +78,96 @@ class IntelligenceScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _pickAndParseFile(BuildContext context, WidgetRef ref) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+    );
+
+    if (result != null) {
+      final bytes = result.files.first.bytes;
+      if (bytes == null) return;
+      
+      final csvString = utf8.decode(bytes);
+      List<List<dynamic>> rows = const CsvToListConverter().convert(csvString);
+      
+      if (rows.isEmpty) return;
+
+      final headers = rows[0].map((e) => e.toString()).toList();
+      final dataRows = rows.skip(1).map((row) {
+        Map<String, String> map = {};
+        for (var i = 0; i < headers.length; i++) {
+          if (i < row.length) {
+            map[headers[i]] = row[i].toString();
+          }
+        }
+        return map;
+      }).toList();
+
+      _showMappingDialog(context, result.files.first.name, headers, dataRows, ref);
+    }
+  }
+
+  void _showMappingDialog(BuildContext context, String fileName, List<String> headers, List<Map<String, String>> data, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Import: $fileName'),
+        content: SizedBox(
+          width: 600,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Detected ${headers.length} columns and ${data.length} rows.', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              const Text('Columns found:'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: headers.map((h) => Chip(label: Text(h, style: const TextStyle(fontSize: 10)))).toList(),
+              ),
+              const SizedBox(height: 24),
+              const Text('Target Module:'),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                items: const [
+                  DropdownMenuItem(value: 'fleet', child: Text('Fleet Inventory')),
+                  DropdownMenuItem(value: 'shifts', child: Text('Shift Schedule')),
+                ],
+                onChanged: (val) {},
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: AppTheme.background,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(auditLogsProvider.notifier).addLog(AuditLog(
+                id: 'log_${DateTime.now().millisecondsSinceEpoch}',
+                userId: 'u1',
+                action: 'import',
+                entityType: 'csv',
+                entityId: fileName,
+                timestamp: DateTime.now(),
+                changes: {'rows': data.length},
+              ));
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported ${data.length} rows successfully.')));
+            },
+            child: const Text('Start Import'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -139,31 +232,6 @@ class IntelligenceScreen extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-
-  void _showImportDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Import Data'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(LucideIcons.fileSpreadsheet, size: 48, color: AppTheme.primary),
-            const SizedBox(height: 16),
-            const Text('Upload Excel/CSV file to sync fleet or shifts.'),
-            const SizedBox(height: 24),
-            OutlinedButton(
-              onPressed: () {},
-              child: const Text('Select File'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        ],
-      ),
     );
   }
 }
