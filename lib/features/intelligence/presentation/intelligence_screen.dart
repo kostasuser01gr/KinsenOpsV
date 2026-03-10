@@ -175,7 +175,19 @@ class IntelligenceScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('AI Optimization Suggestions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        Row(
+          children: [
+            const Icon(LucideIcons.bot, color: AppTheme.tertiary, size: 24),
+            const SizedBox(width: 8),
+            const Text('Ops Copilot Intelligence', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.tertiary)),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(color: AppTheme.tertiary.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+              child: const Text('LIVE MONITORING', style: TextStyle(color: AppTheme.tertiary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+            ),
+          ],
+        ),
         const SizedBox(height: 16),
         Expanded(
           child: ListView.separated(
@@ -249,9 +261,10 @@ class _AISuggestionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.background,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isPending ? AppTheme.primary.withOpacity(0.3) : AppTheme.divider),
+        border: Border.all(color: isPending ? AppTheme.tertiary.withOpacity(0.5) : AppTheme.divider, width: isPending ? 2 : 1),
+        boxShadow: isPending ? [BoxShadow(color: AppTheme.tertiary.withOpacity(0.1), blurRadius: 20)] : [],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,44 +274,81 @@ class _AISuggestionCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(LucideIcons.sparkles, color: AppTheme.primary, size: 18),
+                  const Icon(LucideIcons.zap, color: AppTheme.tertiary, size: 18),
                   const SizedBox(width: 8),
-                  Text(suggestion.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(suggestion.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
                 ],
               ),
               if (suggestion.confidenceScore != null)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                  child: Text('${(suggestion.confidenceScore! * 100).toInt()}% match', style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.1), 
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primary.withOpacity(0.5)),
+                  ),
+                  child: Text('${(suggestion.confidenceScore! * 100).toInt()}% CONFIDENCE', style: const TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
                 ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(suggestion.reasoning, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.divider),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(LucideIcons.info, size: 14, color: AppTheme.textSecondary),
+                const SizedBox(width: 8),
+                Expanded(child: Text(suggestion.reasoning, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4))),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           if (isPending)
             Row(
               children: [
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: () => ref.read(aiSuggestionsProvider.notifier).approveSuggestion(suggestion.id),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                  child: const Text('Approve'),
+                  icon: const Icon(LucideIcons.checkCircle2, size: 16),
+                  label: const Text('EXECUTE ACTION'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.tertiary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 OutlinedButton(
                   onPressed: () => ref.read(aiSuggestionsProvider.notifier).declineSuggestion(suggestion.id),
-                  child: const Text('Decline'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.textSecondary,
+                    side: const BorderSide(color: AppTheme.divider),
+                  ),
+                  child: const Text('DISMISS'),
                 ),
               ],
             )
           else
-            Text(
-              suggestion.status.toUpperCase(),
-              style: TextStyle(
-                color: suggestion.status == 'approved' ? Colors.green : Colors.red,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: suggestion.status == 'approved' ? AppTheme.success.withOpacity(0.1) : AppTheme.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: suggestion.status == 'approved' ? AppTheme.success.withOpacity(0.5) : AppTheme.error.withOpacity(0.5)),
+              ),
+              child: Text(
+                suggestion.status.toUpperCase(),
+                style: TextStyle(
+                  color: suggestion.status == 'approved' ? AppTheme.success : AppTheme.error,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  letterSpacing: 1,
+                ),
               ),
             ),
         ],

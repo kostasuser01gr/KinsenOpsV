@@ -182,13 +182,15 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color color;
+    bool isLive = false;
+
     switch (status) {
-      case VehicleStatus.ready: color = Colors.green; break;
-      case VehicleStatus.cleaning: color = Colors.blue; break;
-      case VehicleStatus.returned: color = Colors.orange; break;
-      case VehicleStatus.maintenance: color = Colors.red; break;
+      case VehicleStatus.ready: color = AppTheme.success; break;
+      case VehicleStatus.cleaning: color = AppTheme.primary; isLive = true; break;
+      case VehicleStatus.returned: color = AppTheme.warning; isLive = true; break;
+      case VehicleStatus.maintenance: color = AppTheme.error; break;
       case VehicleStatus.blocked: color = Colors.grey; break;
-      default: color = Colors.purple;
+      default: color = AppTheme.tertiary;
     }
 
     return Container(
@@ -197,10 +199,24 @@ class _StatusPill extends StatelessWidget {
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withOpacity(0.5)),
+        boxShadow: isLive ? [BoxShadow(color: color.withOpacity(0.2), blurRadius: 8, spreadRadius: 1)] : [],
       ),
-      child: Text(
-        status.name.toUpperCase(),
-        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isLive) ...[
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            status.name.toUpperCase(),
+            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+          ),
+        ],
       ),
     );
   }
@@ -212,22 +228,26 @@ class _FuelIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color = level > 0.5 ? Colors.green : (level > 0.2 ? Colors.orange : Colors.red);
+    Color color = level > 0.5 ? AppTheme.success : (level > 0.2 ? AppTheme.warning : AppTheme.error);
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
+        Icon(LucideIcons.battery, size: 14, color: AppTheme.textSecondary),
+        const SizedBox(width: 4),
         SizedBox(
           width: 60,
           child: LinearProgressIndicator(
             value: level,
             backgroundColor: AppTheme.divider,
             valueColor: AlwaysStoppedAnimation<Color>(color),
-            minHeight: 6,
-            borderRadius: BorderRadius.circular(3),
+            minHeight: 4,
+            borderRadius: BorderRadius.circular(2),
           ),
         ),
         const SizedBox(width: 8),
-        Text('${(level * 100).toInt()}%', style: const TextStyle(fontSize: 12)),
+        Text('${(level * 100).toInt()}%', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold)),
       ],
     );
   }
 }
+

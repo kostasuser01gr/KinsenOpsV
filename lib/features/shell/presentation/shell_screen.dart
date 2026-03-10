@@ -5,6 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:kinsen_ops/core/theme/app_theme.dart';
 import 'package:kinsen_ops/features/shell/presentation/ops_inbox_overlay.dart';
 import 'package:kinsen_ops/features/chat/presentation/chat_controller.dart';
+import 'package:kinsen_ops/features/shell/presentation/voice_assistant_overlay.dart';
 
 class ShellScreen extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -21,6 +22,7 @@ class ShellScreen extends ConsumerStatefulWidget {
 class _ShellScreenState extends ConsumerState<ShellScreen> {
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
+  OverlayEntry? _voiceOverlayEntry;
 
   void _onTap(int index) {
     widget.navigationShell.goBranch(
@@ -36,6 +38,20 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
     } else {
       _overlayEntry?.remove();
       _overlayEntry = null;
+    }
+  }
+
+  void _toggleVoiceAssistant() {
+    if (_voiceOverlayEntry == null) {
+      _voiceOverlayEntry = OverlayEntry(
+        builder: (context) => VoiceAssistantOverlay(
+          onClose: () {
+            _voiceOverlayEntry?.remove();
+            _voiceOverlayEntry = null;
+          },
+        ),
+      );
+      Overlay.of(context).insert(_voiceOverlayEntry!);
     }
   }
 
@@ -79,6 +95,12 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _toggleVoiceAssistant,
+        backgroundColor: AppTheme.primary,
+        child: const Icon(LucideIcons.mic, color: AppTheme.background),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: (isDesktop || isTablet)
           ? null
           : BottomNavigationBar(
