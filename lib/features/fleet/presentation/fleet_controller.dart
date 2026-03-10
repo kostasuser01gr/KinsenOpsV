@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:kinsen_ops/features/fleet/domain/models/vehicle.dart';
-import 'package:uuid/uuid.dart';
+import 'package:kinsen_ops/core/config/api_config.dart';
 
 final fleetProvider = StateNotifierProvider<FleetNotifier, List<Vehicle>>((ref) {
   return FleetNotifier();
@@ -8,56 +10,64 @@ final fleetProvider = StateNotifierProvider<FleetNotifier, List<Vehicle>>((ref) 
 
 class FleetNotifier extends StateNotifier<List<Vehicle>> {
   FleetNotifier() : super([]) {
-    _loadMockData();
+    _fetchFleet();
   }
 
-  void _loadMockData() {
-    const uuid = Uuid();
-    state = [
-      Vehicle(
-        id: uuid.v4(),
-        plate: 'ZXY-1234',
-        model: 'Toyota Corolla',
-        status: VehicleStatus.returned,
-        lastStatusUpdate: DateTime.now().subtract(const Duration(minutes: 45)),
-        fuelLevel: 0.25,
-        mileage: 45000,
-      ),
-      Vehicle(
-        id: uuid.v4(),
-        plate: 'ABC-5678',
-        model: 'Ford Focus',
-        status: VehicleStatus.cleaning,
-        lastStatusUpdate: DateTime.now().subtract(const Duration(minutes: 15)),
-        fuelLevel: 0.80,
-        mileage: 32000,
-        assignedWasherId: 'W1',
-      ),
-      Vehicle(
-        id: uuid.v4(),
-        plate: 'KNS-0001',
-        model: 'Mercedes E-Class',
-        status: VehicleStatus.ready,
-        lastStatusUpdate: DateTime.now().subtract(const Duration(hours: 2)),
-        fuelLevel: 1.0,
-        mileage: 12000,
-      ),
-      Vehicle(
-        id: uuid.v4(),
-        plate: 'BAD-9999',
-        model: 'BMW 3 Series',
-        status: VehicleStatus.maintenance,
-        lastStatusUpdate: DateTime.now().subtract(const Duration(days: 1)),
-        fuelLevel: 0.1,
-        mileage: 89000,
-      ),
-    ];
+  Future<void> _fetchFleet() async {
+    try {
+      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/fleet'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        state = data.map((json) {
+           return Vehicle(
+            id: json['id'],
+            plate: json['plate'],
+            model: json['model'],
+            status: _parseStatus(json['status']),
+            fuelLevel: json['fuelLevel']?.toDouble() ?? 1.0,
+            mileage: json['mileage'] ?? 0,
+            lastStatusUpdate: DateTime.now(), // Fallback if API lacks it
+            assignedWasherId: json['assignedWasherId'],
+          );
+        }).toList();
+      } else {
+        print('Failed to load fleet: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching fleet: $e');
+    }
+  }
+  
+  VehicleStatus _parseStatus(String? status) {
+     switch (status) {
+       case 'returned': return VehicleStatus.returned;
+       case 'cleaning': return VehicleStatus.cleaning;
+       case 'qc': return VehicleStatus.qc;
+       case 'ready': return VehicleStatus.ready;
+       case 'blocked': return VehicleStatus.blocked;
+       case 'maintenance': return VehicleStatus.maintenance;
+       case 'rented': return VehicleStatus.rented;
+       default: return VehicleStatus.ready;
+     }
   }
 
-  void updateVehicleStatus(String id, VehicleStatus newStatus) {
-    state = [
-      for (final v in state)
-        if (v.id == id) v.copyWith(status: newStatus, lastStatusUpdate: DateTime.now()) else v,
-    ];
+  Future<void> updateVehicleStatus(String id, VehicleStatus newStatus) async {
+    try {
+      final statusString = newStatus.toString().split('.').last;
+      final response = await http.put(
+        Uri.parse('${ApiConfig.baseUrl}/fleet/$id/status'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'status': statusString}),
+      );
+
+      if (response.statusCode == 200) {
+        state = [
+          for (final v in state)
+            if (v.id == id) v.copyWith(status: newStatus, lastStatusUpdate: DateTime.now()) else v,
+        ];
+      }
+    } catch (e) {
+      print('Error updating status: $e');
+    }
   }
 }
