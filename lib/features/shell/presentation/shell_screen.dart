@@ -89,6 +89,7 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
                 BottomNavigationBarItem(icon: Icon(LucideIcons.droplets), label: 'Washers'),
                 BottomNavigationBarItem(icon: Icon(LucideIcons.calendarDays), label: 'Shifts'),
                 BottomNavigationBarItem(icon: Icon(LucideIcons.messageSquare), label: 'Chat'),
+                BottomNavigationBarItem(icon: Icon(LucideIcons.sparkles), label: 'AI'),
               ],
             ),
     );
@@ -148,8 +149,14 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
             isDesktop: isDesktop,
             onTap: () => _onTap(3),
           ),
+          _SidebarItem(
+            icon: LucideIcons.sparkles,
+            label: 'Intelligence',
+            isSelected: widget.navigationShell.currentIndex == 4,
+            isDesktop: isDesktop,
+            onTap: () => _onTap(4),
+          ),
           const Spacer(),
-          // Health Pill
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Container(

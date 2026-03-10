@@ -8,12 +8,12 @@ import 'package:kinsen_ops/features/washers/presentation/washers_screen.dart';
 import 'package:kinsen_ops/features/washers/presentation/washers_kiosk_screen.dart';
 import 'package:kinsen_ops/features/shifts/presentation/shifts_screen.dart';
 import 'package:kinsen_ops/features/chat/presentation/chat_screen.dart';
+import 'package:kinsen_ops/features/intelligence/presentation/intelligence_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/fleet',
     routes: [
-      // Kiosk mode (standalone, no shell)
       GoRoute(
         path: '/kiosk',
         builder: (context, state) => const ErrorBoundary(
@@ -21,7 +21,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: WashersKioskScreen(),
         ),
       ),
-      // Main Application with Shell
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return ShellScreen(navigationShell: navigationShell);
@@ -67,6 +66,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => const ErrorBoundary(
                   moduleName: 'Chat',
                   child: ChatScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/intelligence',
+                builder: (context, state) => const ErrorBoundary(
+                  moduleName: 'Intelligence',
+                  child: IntelligenceScreen(),
                 ),
               ),
             ],
