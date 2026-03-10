@@ -34,14 +34,6 @@ class AppTheme {
         centerTitle: false,
         iconTheme: IconThemeData(color: textPrimary),
       ),
-      cardTheme: CardTheme(
-        color: surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: divider, width: 1),
-        ),
-      ),
       dividerTheme: const DividerThemeData(
         color: divider,
         thickness: 1,
