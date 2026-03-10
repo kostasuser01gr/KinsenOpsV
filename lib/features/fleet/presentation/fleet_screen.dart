@@ -3,14 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kinsen_ops/core/theme/app_theme.dart';
 import 'package:kinsen_ops/features/fleet/domain/models/vehicle.dart';
 import 'package:kinsen_ops/features/fleet/presentation/fleet_controller.dart';
+import 'package:kinsen_ops/features/fleet/presentation/station_twin_map.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 
-class FleetScreen extends ConsumerWidget {
+class FleetScreen extends ConsumerStatefulWidget {
   const FleetScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FleetScreen> createState() => _FleetScreenState();
+}
+
+class _FleetScreenState extends ConsumerState<FleetScreen> {
+  int _viewMode = 0; // 0 = List, 1 = Map
+
+  @override
+  Widget build(BuildContext context) {
     final vehicles = ref.watch(fleetProvider);
 
     return Scaffold(
@@ -39,16 +47,43 @@ class FleetScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(LucideIcons.plus),
-                  label: const Text('Add Vehicle'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                Row(
+                  children: [
+                    SegmentedButton<int>(
+                      segments: const [
+                        ButtonSegment(value: 0, icon: Icon(LucideIcons.list)),
+                        ButtonSegment(value: 1, icon: Icon(LucideIcons.map)),
+                      ],
+                      selected: {_viewMode},
+                      onSelectionChanged: (Set<int> newSelection) {
+                        setState(() {
+                          _viewMode = newSelection.first;
+                        });
+                      },
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                          if (states.contains(WidgetState.selected)) return AppTheme.primary.withOpacity(0.2);
+                          return AppTheme.surface;
+                        }),
+                        foregroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+                          if (states.contains(WidgetState.selected)) return AppTheme.primary;
+                          return AppTheme.textSecondary;
+                        }),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(LucideIcons.plus),
+                      label: const Text('Add Vehicle'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -56,7 +91,7 @@ class FleetScreen extends ConsumerWidget {
             _buildFleetStats(vehicles),
             const SizedBox(height: 32),
             Expanded(
-              child: _buildFleetTable(context, vehicles, ref),
+              child: _viewMode == 0 ? _buildFleetTable(context, vehicles, ref) : const StationTwinMap(),
             ),
           ],
         ),
