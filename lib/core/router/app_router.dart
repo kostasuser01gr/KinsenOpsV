@@ -5,6 +5,7 @@ import 'package:kinsen_ops/core/widgets/error_boundary.dart';
 import 'package:kinsen_ops/features/shell/presentation/shell_screen.dart';
 import 'package:kinsen_ops/features/fleet/presentation/fleet_screen.dart';
 import 'package:kinsen_ops/features/washers/presentation/washers_screen.dart';
+import 'package:kinsen_ops/features/washers/presentation/washers_kiosk_screen.dart';
 import 'package:kinsen_ops/features/shifts/presentation/shifts_screen.dart';
 import 'package:kinsen_ops/features/chat/presentation/chat_screen.dart';
 
@@ -12,6 +13,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/fleet',
     routes: [
+      // Kiosk mode (standalone, no shell)
+      GoRoute(
+        path: '/kiosk',
+        builder: (context, state) => const ErrorBoundary(
+          moduleName: 'Wash Kiosk',
+          child: WashersKioskScreen(),
+        ),
+      ),
+      // Main Application with Shell
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return ShellScreen(navigationShell: navigationShell);
