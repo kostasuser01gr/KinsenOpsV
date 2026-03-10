@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:kinsen_ops/core/theme/app_theme.dart';
+import 'package:kinsen_ops/features/shell/presentation/ops_inbox_overlay.dart';
+import 'package:kinsen_ops/features/chat/presentation/chat_controller.dart';
 
-class ShellScreen extends StatelessWidget {
+class ShellScreen extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const ShellScreen({
@@ -11,10 +14,48 @@ class ShellScreen extends StatelessWidget {
     required this.navigationShell,
   });
 
+  @override
+  ConsumerState<ShellScreen> createState() => _ShellScreenState();
+}
+
+class _ShellScreenState extends ConsumerState<ShellScreen> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+
   void _onTap(int index) {
-    navigationShell.goBranch(
+    widget.navigationShell.goBranch(
       index,
-      initialLocation: index == navigationShell.currentIndex,
+      initialLocation: index == widget.navigationShell.currentIndex,
+    );
+  }
+
+  void _toggleOpsInbox() {
+    if (_overlayEntry == null) {
+      _overlayEntry = _createOverlayEntry();
+      Overlay.of(context).insert(_overlayEntry!);
+    } else {
+      _overlayEntry?.remove();
+      _overlayEntry = null;
+    }
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    return OverlayEntry(
+      builder: (context) => Positioned(
+        width: 400,
+        child: CompositedTransformFollower(
+          link: _layerLink,
+          showWhenUnlinked: false,
+          offset: const Offset(-360, 50),
+          child: Material(
+            color: Colors.transparent,
+            child: TapRegion(
+              onTapOutside: (event) => _toggleOpsInbox(),
+              child: const OpsInboxOverlay(),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -32,7 +73,7 @@ class ShellScreen extends StatelessWidget {
             child: Column(
               children: [
                 _buildTopBar(context),
-                Expanded(child: navigationShell),
+                Expanded(child: widget.navigationShell),
               ],
             ),
           ),
@@ -41,7 +82,7 @@ class ShellScreen extends StatelessWidget {
       bottomNavigationBar: (isDesktop || isTablet)
           ? null
           : BottomNavigationBar(
-              currentIndex: navigationShell.currentIndex,
+              currentIndex: widget.navigationShell.currentIndex,
               onTap: _onTap,
               items: const [
                 BottomNavigationBarItem(icon: Icon(LucideIcons.car), label: 'Fleet'),
@@ -82,28 +123,28 @@ class ShellScreen extends StatelessWidget {
           _SidebarItem(
             icon: LucideIcons.car,
             label: 'Fleet',
-            isSelected: navigationShell.currentIndex == 0,
+            isSelected: widget.navigationShell.currentIndex == 0,
             isDesktop: isDesktop,
             onTap: () => _onTap(0),
           ),
           _SidebarItem(
             icon: LucideIcons.droplets,
             label: 'Washers',
-            isSelected: navigationShell.currentIndex == 1,
+            isSelected: widget.navigationShell.currentIndex == 1,
             isDesktop: isDesktop,
             onTap: () => _onTap(1),
           ),
           _SidebarItem(
             icon: LucideIcons.calendarDays,
             label: 'Shifts',
-            isSelected: navigationShell.currentIndex == 2,
+            isSelected: widget.navigationShell.currentIndex == 2,
             isDesktop: isDesktop,
             onTap: () => _onTap(2),
           ),
           _SidebarItem(
             icon: LucideIcons.messageSquare,
             label: 'Chat',
-            isSelected: navigationShell.currentIndex == 3,
+            isSelected: widget.navigationShell.currentIndex == 3,
             isDesktop: isDesktop,
             onTap: () => _onTap(3),
           ),
@@ -136,6 +177,8 @@ class ShellScreen extends StatelessWidget {
   }
 
   Widget _buildTopBar(BuildContext context) {
+    final unreadNotifications = ref.watch(opsInboxProvider).length;
+
     return Container(
       height: 60,
       decoration: const BoxDecoration(
@@ -164,9 +207,27 @@ class ShellScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          IconButton(
-            icon: const Icon(LucideIcons.bell),
-            onPressed: () {},
+          CompositedTransformTarget(
+            link: _layerLink,
+            child: IconButton(
+              icon: Stack(
+                children: [
+                  const Icon(LucideIcons.bell),
+                  if (unreadNotifications > 0)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                        constraints: const BoxConstraints(minWidth: 12, minHeight: 12),
+                        child: Text(unreadNotifications.toString(), style: const TextStyle(color: Colors.white, fontSize: 8)),
+                      ),
+                    ),
+                ],
+              ),
+              onPressed: _toggleOpsInbox,
+            ),
           ),
           const SizedBox(width: 8),
           const CircleAvatar(
